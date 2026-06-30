@@ -1,0 +1,5 @@
+<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="go-ruby-ostruct">
+  <defs><linearGradient id="ruby" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#DC2626"/><stop offset="1" stop-color="#7F1D1D"/></linearGradient></defs>
+  <rect width="256" height="256" rx="56" fill="url(#ruby)"/>
+  <g fill="none" stroke="#FFFFFF" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"><path d="M98 72 L72 72 L72 186 L184 186 L184 72 L158 72"/></g><g stroke="#FFFFFF" stroke-width="15" stroke-linecap="round"><line x1="128" y1="106" x2="128" y2="154"/><line x1="104" y1="130" x2="152" y2="130"/></g>
+</svg>
