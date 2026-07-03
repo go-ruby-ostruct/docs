@@ -87,91 +87,100 @@ and through each reference runtime's stdlib; the drivers' digests were checked
   Interpreter start-up is outside the timed region, so these are operation costs,
   not `ruby file.rb` process costs.
 
-**go vs YJIT verdict:** the pure-Go library **beats MRI + YJIT on four of the five
-operations** — `construct` (~67× faster than YJIT), `write` / dynamic member add
-(~33× faster), `read` (0.46× YJIT), and `index` (0.93× YJIT, a thin win). It
-**loses only on `to_h`** (~5.7× YJIT), which is the module's one optimization
-target — see the note below.
+**go vs YJIT verdict:** the pure-Go library now **beats MRI + YJIT on all five
+operations** — `construct` (~53× faster than YJIT), `write` / dynamic member add
+(~27× faster), `read` (0.50× YJIT), `index` (0.91× YJIT, a thin win), and — after
+the 2026-07-03 optimization below — `to_h` (**0.69× YJIT**, 0.56× MRI), which was
+previously the module's one loss (~6.4× YJIT). The `to_h` fix stores the table's
+entries in an insertion-ordered slice so serialisation is a single slice copy with
+no per-key re-hash; see the `to_h-40` note.
 
 #### construct-40 — `OpenStruct.new(hash)` from a 40-field hash
 
 | Runtime | ns/op | vs MRI |
 | --- | ---: | ---: |
-| **go-ruby (pure Go)** | 1024.0 | 0.01× |
-| MRI | 69597.0 | 1.00× |
-| MRI + YJIT | 68999.5 | 0.99× |
-| JRuby | 28278.6 | 0.41× |
-| TruffleRuby | 159135.0 | 2.29× |
+| **go-ruby (pure Go)** | 1271.8 | 0.02× |
+| MRI | 67886.0 | 1.00× |
+| MRI + YJIT | 67754.0 | 1.00× |
+| JRuby | 28397.6 | 0.42× |
+| TruffleRuby | 162990.7 | 2.40× |
 
 Construction is where MRI's `OpenStruct` is famously slow: `new(hash)` defines a
-singleton accessor method **per field** via `define_method`, so 40 fields cost ~70
-µs. The pure-Go build is an ordered map fill — **~68× faster than MRI and YJIT**
-(1024.0 / 68999.5 = **0.015× YJIT**). YJIT cannot help: the cost is in
-metaprogramming (method-table churn), not interpreted bytecode.
+singleton accessor method **per field** via `define_method`, so 40 fields cost ~68
+µs. The pure-Go build is an ordered slice fill plus an index insert — **~53× faster
+than MRI and YJIT** (1271.8 / 67754.0 = **0.019× YJIT**). YJIT cannot help: the cost
+is in metaprogramming (method-table churn), not interpreted bytecode.
 
 #### write-40 — dynamic member add (`os.f = v` on a fresh struct)
 
 | Runtime | ns/op | vs MRI |
 | --- | ---: | ---: |
-| **go-ruby (pure Go)** | 3060.0 | 0.03× |
-| MRI | 102103.0 | 1.00× |
-| MRI + YJIT | 100253.0 | 0.98× |
-| JRuby | 39565.1 | 0.39× |
-| TruffleRuby | 182686.0 | 1.79× |
+| **go-ruby (pure Go)** | 3575.9 | 0.04× |
+| MRI | 100180.0 | 1.00× |
+| MRI + YJIT | 97715.0 | 0.98× |
+| JRuby | 40042.9 | 0.40× |
+| TruffleRuby | 178721.7 | 1.78× |
 
 Growing a fresh struct one **new** attribute at a time is the worst case for MRI's
 `method_missing` + `define_singleton_method` writer path (~100 µs for 40 adds). The
-Go writer just appends to the key slice and stores in the map — **~33× faster than
-YJIT** (3060.0 / 100253.0 = **0.031×**). This is the single biggest win.
+Go writer just appends the entry and records its position in the index — **~27×
+faster than YJIT** (3575.9 / 97715.0 = **0.037×**). This is the single biggest win.
 
 #### read-40 — attribute read (`method_missing` reader path)
 
 | Runtime | ns/op | vs MRI |
 | --- | ---: | ---: |
-| **go-ruby (pure Go)** | 1179.4 | 0.41× |
-| MRI | 2844.5 | 1.00× |
-| MRI + YJIT | 2557.0 | 0.90× |
-| JRuby | 2743.2 | 0.96× |
-| TruffleRuby | 1435.5 | 0.50× |
+| **go-ruby (pure Go)** | 1249.9 | 0.43× |
+| MRI | 2891.0 | 1.00× |
+| MRI + YJIT | 2481.0 | 0.86× |
+| JRuby | 2545.5 | 0.88× |
+| TruffleRuby | 1214.6 | 0.42× |
 
-Once the accessors exist, reads are cheaper, but a pure-Go map lookup still
-**beats YJIT** (1179.4 / 2557.0 = **0.46× YJIT**; 0.41× MRI). YJIT recovers some
-ground over plain MRI (0.90×) by compiling the accessor, but does not catch the Go
-table.
+Once the accessors exist, reads are cheaper, but a pure-Go map probe into the index
+plus a slice load still **beats YJIT** (1249.9 / 2481.0 = **0.50× YJIT**; 0.43×
+MRI). YJIT recovers some ground over plain MRI (0.86×) by compiling the accessor,
+but does not catch the Go table.
 
 #### index-40 — `[]=` write-through then `[]` read-back
 
 | Runtime | ns/op | vs MRI |
 | --- | ---: | ---: |
-| **go-ruby (pure Go)** | 2925.9 | 0.57× |
-| MRI | 5166.0 | 1.00× |
-| MRI + YJIT | 3152.5 | 0.61× |
-| JRuby | 2538.0 | 0.49× |
-| TruffleRuby | 510.0 | 0.10× |
+| **go-ruby (pure Go)** | 2775.1 | 0.53× |
+| MRI | 5203.5 | 1.00× |
+| MRI + YJIT | 3044.5 | 0.59× |
+| JRuby | 2524.4 | 0.49× |
+| TruffleRuby | 381.4 | 0.07× |
 
 The bracket accessors (`[]`/`[]=`) are ordinary method calls that hash the key each
-time. Go **edges YJIT** here (2925.9 / 3152.5 = **0.93× YJIT**; 0.57× MRI) — a thin
+time. Go **edges YJIT** here (2775.1 / 3044.5 = **0.91× YJIT**; 0.53× MRI) — a thin
 win. TruffleRuby's Graal JIT is dramatically faster on this tight steady-state loop
-(0.10×), the one op where a warmed JIT clearly leads; JRuby also beats Go slightly
+(0.07×), the one op where a warmed JIT clearly leads; JRuby also beats Go slightly
 (0.49×). This is a steady-state hot loop the JITs are built for.
 
 #### to_h-40 — ordered serialisation to a Hash
 
 | Runtime | ns/op | vs MRI |
 | --- | ---: | ---: |
-| **go-ruby (pure Go)** | 767.1 | 4.62× |
-| MRI | 166.0 | 1.00× |
-| MRI + YJIT | 134.5 | 0.81× |
-| JRuby | 295.5 | 1.78× |
-| TruffleRuby | 192.0 | 1.16× |
+| **go-ruby (pure Go)** | 89.5 | 0.56× |
+| MRI | 160.0 | 1.00× |
+| MRI + YJIT | 130.5 | 0.82× |
+| JRuby | 176.0 | 1.10× |
+| TruffleRuby | 191.2 | 1.19× |
 
-The **one operation where the pure-Go library loses**: MRI's `to_h` is a tight C
-copy of an already-built Hash, whereas the Go `ToH` allocates a fresh `[]Pair` and
-does one map lookup per key to rebuild insertion order — **~5.7× YJIT** (767.1 /
-134.5), ~4.6× MRI. This is the module's remaining optimization target: cache the
-ordered pairs (or expose a zero-copy view over the internal `keys`/`table`) so
-`ToH` avoids the per-key re-hash. It is a sub-microsecond row, so treat the ratio
-as order-of-magnitude — but the direction is stable across runs.
+Formerly the module's **one loss**, `to_h` now **beats every reference runtime**,
+including MRI + YJIT (89.5 / 130.5 = **0.69× YJIT**; 0.56× MRI). The fix
+([go-ruby-ostruct/ostruct#1](https://github.com/go-ruby-ostruct/ostruct/pull/1)):
+the table's entries are stored in an **insertion-ordered slice of pairs** (each key
+a Symbol) with a separate `Symbol → position` index. `to_h` was previously
+`824.7 ns/op` (~6.4× YJIT) because it walked the ordered keys and did **one map
+probe per key** to re-pair each value with its position — an O(n) re-hash of an
+order the struct already knew. With the values already sitting in insertion order,
+`ToH` is a single `make`+`copy` with **zero per-key hashing**; a fresh slice is
+still returned, so callers may mutate it exactly as Ruby's `to_h` returns an
+independent Hash — matching MRI's tight C hash-copy. Random access (`[]`, readers)
+stays a single map probe, so `construct`/`write`/`read`/`index` are unaffected.
+This is a sub-microsecond row, so treat the ratio as order-of-magnitude — but the
+direction (a ~9× speedup, now under YJIT) is stable across runs.
 
 !!! note "Reproduce"
     The harness is committed under
