@@ -1,3 +1,8 @@
 /site/
 .venv/
 __pycache__/
+
+# Compiled benchmark driver: `go build`/`go run` in benchmarks/go leaves a
+# `bench` executable (named after the module). Never commit it.
+/benchmarks/go/bench
+*.test
