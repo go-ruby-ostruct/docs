@@ -1,5 +1,5 @@
 module bench
 
-go 1.26.4
+go 1.27.1
 
-require github.com/go-ruby-ostruct/ostruct v0.0.0-20260820220107-4de11f016237
+require github.com/go-ruby-ostruct/ostruct v0.0.0-20261004235033-c13e0df4bc07

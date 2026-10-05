@@ -6,3 +6,5 @@ github.com/go-ruby-ostruct/ostruct v0.0.0-20260709090006-a9cf6e73ea97 h1:qKEa0LH
 github.com/go-ruby-ostruct/ostruct v0.0.0-20260709090006-a9cf6e73ea97/go.mod h1:WkHaYzJJba7jbtNmSXYztEF9tPOWgUv32ox47v1+AZc=
 github.com/go-ruby-ostruct/ostruct v0.0.0-20260820220107-4de11f016237 h1:3VgQXN1u/xQQ3AauWol2ZfByyb5M+wwUSQxw3uFAHx0=
 github.com/go-ruby-ostruct/ostruct v0.0.0-20260820220107-4de11f016237/go.mod h1:WkHaYzJJba7jbtNmSXYztEF9tPOWgUv32ox47v1+AZc=
+github.com/go-ruby-ostruct/ostruct v0.0.0-20261004235033-c13e0df4bc07 h1:UDtwW/C4bTaLFZYb9sNXlfLNVMVUzr2f6uEVc65syf8=
+github.com/go-ruby-ostruct/ostruct v0.0.0-20261004235033-c13e0df4bc07/go.mod h1:QanDAdSPRhfOL9OGql+pqGUu0X7bYDpgDz1W8YSfeC4=
