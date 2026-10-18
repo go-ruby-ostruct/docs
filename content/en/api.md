@@ -1,4 +1,9 @@
-# Usage & API
+---
+title: "Usage & API"
+weight: 30
+---
+
+# Usage & API {#usage-api}
 
 The public API lives at the module root (`github.com/go-ruby-ostruct/ostruct`). It
 is **Ruby-shaped but Go-idiomatic**: the methods mirror `OpenStruct`'s, while the
@@ -6,17 +11,20 @@ surface follows Go conventions — explicit errors, value types, no global state
 Keys accept a `Symbol` or `string` (interned via `ToSym`); values are held as
 opaque `any`.
 
-!!! success "Status: implemented"
-    The library is built and importable as `github.com/go-ruby-ostruct/ostruct`,
-    bound into `rbgo` as a native module; see [Roadmap](roadmap.md).
+{{< callout type="info" >}}
+**Status: implemented**
 
-## Install
+The library is built and importable as `github.com/go-ruby-ostruct/ostruct`,
+bound into `rbgo` as a native module; see [Roadmap]({{< relref "roadmap.md" >}}).
+{{< /callout >}}
+
+## Install {#install}
 
 ```sh
 go get github.com/go-ruby-ostruct/ostruct
 ```
 
-## Worked example
+## Worked example {#worked-example}
 
 ```go
 o := ostruct.New(
@@ -34,7 +42,7 @@ for _, p := range o.ToH() {     // to_h: Symbol keys, insertion order
 old, err := o.DeleteField("age")  // 70, nil   (NameError if absent)
 ```
 
-## API
+## API {#api}
 
 | Go | Ruby |
 | --- | --- |
@@ -54,7 +62,7 @@ old, err := o.DeleteField("age")  // 70, nil   (NameError if absent)
 host's Ruby values render and dig exactly as in MRI, with a built-in renderer
 covering the common scalar/collection shapes for deterministic, ruby-free testing.
 
-## MRI-faithful samples
+## MRI-faithful samples {#mri-faithful-samples}
 
 ```text
 OpenStruct.new(name: "John", age: 70).inspect  #=> #<OpenStruct name="John", age=70>
@@ -66,7 +74,7 @@ OpenStruct.new.delete_field(:x)                 #=> NameError: no field 'x' in #
 OpenStruct.new(name: "John") == OpenStruct.new(name: "John")  #=> true
 ```
 
-## MRI conformance
+## MRI conformance {#mri-conformance}
 
 Correctness is defined by reference Ruby. A **differential oracle** runs a wide
 corpus through both the system `ruby` and this library and compares the `inspect`
@@ -75,7 +83,7 @@ approximated from memory. The oracle tests skip themselves where `ruby` is not o
 `PATH` (e.g. the qemu arch lanes), so the cross-arch builds still validate the
 library.
 
-## Relationship to Ruby
+## Relationship to Ruby {#relationship-to-ruby}
 
 `go-ruby-ostruct/ostruct` is **standalone and reusable**, and is the backend bound
 into [go-embedded-ruby](https://github.com/go-embedded-ruby/ruby) by `rbgo` as a

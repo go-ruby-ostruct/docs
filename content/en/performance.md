@@ -1,4 +1,9 @@
-# Performance
+---
+title: "Performance"
+weight: 50
+---
+
+# Performance {#performance}
 
 `go-ruby-ostruct/ostruct` is the pure-Go library that
 [`rbgo`](https://github.com/go-embedded-ruby/ruby) binds for Ruby's `OpenStruct`.
@@ -6,7 +11,7 @@ This page records the **methodology** of the comparative benchmark of that modul
 against the reference Ruby runtimes, part of the ecosystem-wide per-module parity
 suite.
 
-## Result (best of 5, ms)
+## Result (best of 5, ms) {#result-best-of-5-ms}
 
 Measured 2026-06-30 on **Apple M4 Max**, macOS (darwin/arm64), Go 1.26.4, with
 `ruby 4.0.5 +PRISM`, `jruby 10.1.0.0` (OpenJDK 25) and `truffleruby 34.0.1`
@@ -27,15 +32,18 @@ the pure-Go field table builds, reads and serialises more cheaply than MRI's
 `OpenStruct`, whose per-attribute access goes through `method_missing` and dynamic
 singleton-method definition in Ruby. The compiled table operations dominate.
 
-!!! note "Honest framing"
-    JRuby and TruffleRuby are timed **cold, single-shot**, so they carry JVM /
-    Graal startup on every run — read them as one-shot `ruby file.rb` costs, the
-    same way `rbgo` and MRI are measured, not as steady-state JIT numbers. These
-    are **real measured numbers** from the 2026-06-30 run (Apple M4 Max;
-    `ruby 4.0.5 +PRISM`, `jruby 10.1.0.0`, `truffleruby 34.0.1`) — nothing is
-    fabricated or cherry-picked.
+{{< callout type="info" >}}
+**Honest framing**
 
-## What is measured
+JRuby and TruffleRuby are timed **cold, single-shot**, so they carry JVM /
+Graal startup on every run — read them as one-shot `ruby file.rb` costs, the
+same way `rbgo` and MRI are measured, not as steady-state JIT numbers. These
+are **real measured numbers** from the 2026-06-30 run (Apple M4 Max;
+`ruby 4.0.5 +PRISM`, `jruby 10.1.0.0`, `truffleruby 34.0.1`) — nothing is
+fabricated or cherry-picked.
+{{< /callout >}}
+
+## What is measured {#what-is-measured}
 
 The **same** Ruby script — building an `OpenStruct`, reading and writing
 attributes through `method_missing`, `to_h`, `dig`, and `inspect` over a
@@ -46,7 +54,7 @@ own `ostruct` stdlib. So the comparison is the **Ruby-visible operation**,
 apples-to-apples across interpreters. The script prints a deterministic checksum
 and its output is checked **byte-identical to MRI** before timing.
 
-## How it is run
+## How it is run {#how-it-is-run}
 
 - **Method:** best-of-N wall time (best, not mean, to suppress scheduler noise);
   single-shot processes, no warm-up beyond the script's own loop.
@@ -60,13 +68,13 @@ and its output is checked **byte-identical to MRI** before timing.
   `RBGO=./rbgo TRUFFLE=truffleruby bash bench/modules/run.sh N` invocation used
   across the ecosystem.
 
-## Honest framing
+## Honest framing {#honest-framing}
 
 Rows that complete in well under ~200 ms carry the most relative noise; their
 ratios should be read as order-of-magnitude. Any numbers added here will be real
 measured numbers from a dated run — nothing cherry-picked.
 
-## Library-level benchmark (Go API vs runtimes) — 2026-07-03
+## Library-level benchmark (Go API vs runtimes) — 2026-07-03 {#library-level-benchmark-go-api-vs-runtimes-2026-07-03}
 
 This section measures the **pure-Go library directly, through its Go API** — not
 the `rbgo` interpreter path recorded above. It isolates the library primitive
@@ -95,7 +103,7 @@ previously the module's one loss (~6.4× YJIT). The `to_h` fix stores the table'
 entries in an insertion-ordered slice so serialisation is a single slice copy with
 no per-key re-hash; see the `to_h-40` note.
 
-#### construct-40 — `OpenStruct.new(hash)` from a 40-field hash
+#### construct-40 — `OpenStruct.new(hash)` from a 40-field hash {#construct-40-openstructnewhash-from-a-40-field-hash}
 
 | Runtime | ns/op | vs MRI |
 | --- | ---: | ---: |
@@ -111,7 +119,7 @@ singleton accessor method **per field** via `define_method`, so 40 fields cost ~
 than MRI and YJIT** (1271.8 / 67754.0 = **0.019× YJIT**). YJIT cannot help: the cost
 is in metaprogramming (method-table churn), not interpreted bytecode.
 
-#### write-40 — dynamic member add (`os.f = v` on a fresh struct)
+#### write-40 — dynamic member add (`os.f = v` on a fresh struct) {#write-40-dynamic-member-add-osf-v-on-a-fresh-struct}
 
 | Runtime | ns/op | vs MRI |
 | --- | ---: | ---: |
@@ -126,7 +134,7 @@ Growing a fresh struct one **new** attribute at a time is the worst case for MRI
 Go writer just appends the entry and records its position in the index — **~27×
 faster than YJIT** (3575.9 / 97715.0 = **0.037×**). This is the single biggest win.
 
-#### read-40 — attribute read (`method_missing` reader path)
+#### read-40 — attribute read (`method_missing` reader path) {#read-40-attribute-read-method_missing-reader-path}
 
 | Runtime | ns/op | vs MRI |
 | --- | ---: | ---: |
@@ -141,7 +149,7 @@ plus a slice load still **beats YJIT** (1249.9 / 2481.0 = **0.50× YJIT**; 0.43�
 MRI). YJIT recovers some ground over plain MRI (0.86×) by compiling the accessor,
 but does not catch the Go table.
 
-#### index-40 — `[]=` write-through then `[]` read-back
+#### index-40 — `[]=` write-through then `[]` read-back {#index-40-write-through-then-read-back}
 
 | Runtime | ns/op | vs MRI |
 | --- | ---: | ---: |
@@ -157,7 +165,7 @@ win. TruffleRuby's Graal JIT is dramatically faster on this tight steady-state l
 (0.07×), the one op where a warmed JIT clearly leads; JRuby also beats Go slightly
 (0.49×). This is a steady-state hot loop the JITs are built for.
 
-#### to_h-40 — ordered serialisation to a Hash
+#### to_h-40 — ordered serialisation to a Hash {#to_h-40-ordered-serialisation-to-a-hash}
 
 | Runtime | ns/op | vs MRI |
 | --- | ---: | ---: |
@@ -182,24 +190,30 @@ stays a single map probe, so `construct`/`write`/`read`/`index` are unaffected.
 This is a sub-microsecond row, so treat the ratio as order-of-magnitude — but the
 direction (a ~9× speedup, now under YJIT) is stable across runs.
 
-!!! note "Reproduce"
-    The harness is committed under
-    [`benchmarks/`](https://github.com/go-ruby-ostruct/docs/tree/main/benchmarks):
-    a self-contained Go driver (`go/`, pins the published library via
-    `go.mod` pseudo-version), the equivalent `ruby/ostruct.rb` workload, and
-    `run.sh`. Run `bash benchmarks/run.sh`; it first checks the Go driver's output
-    **byte-identical to MRI**, then times every available runtime. Env
-    `OUTER`/`WARM` tune the pass budget and `RUBY`/`JRUBY`/`TRUFFLERUBY` select the
-    runtime binaries.
+{{< callout type="info" >}}
+**Reproduce**
 
-!!! warning "Warm-up budget & noise — honest framing"
-    Numbers reflect a **fixed warm-process budget** (3 warm-up + 25 timed passes
-    in one process). The JVM/GraalVM JITs (JRuby, TruffleRuby) may need a larger
-    warm-up to reach steady state, so their columns can **understate** peak
-    throughput on the longer loops and **overstate** it on the shortest ones where
-    they happen to have warmed (see `index-40`). Sub-microsecond rows (`to_h-40`)
-    carry the most relative noise; treat those ratios as order-of-magnitude. Every
-    number here is a **real measured value** from the dated run above — nothing is
-    fabricated, estimated, or cherry-picked. The go-ruby column is the pure-Go
-    library; every other column is that interpreter's own `ostruct` stdlib doing
-    the equivalent work.
+The harness is committed under
+[`benchmarks/`](https://github.com/go-ruby-ostruct/docs/tree/main/benchmarks):
+a self-contained Go driver (`go/`, pins the published library via
+`go.mod` pseudo-version), the equivalent `ruby/ostruct.rb` workload, and
+`run.sh`. Run `bash benchmarks/run.sh`; it first checks the Go driver's output
+**byte-identical to MRI**, then times every available runtime. Env
+`OUTER`/`WARM` tune the pass budget and `RUBY`/`JRUBY`/`TRUFFLERUBY` select the
+runtime binaries.
+{{< /callout >}}
+
+{{< callout type="warning" >}}
+**Warm-up budget & noise — honest framing**
+
+Numbers reflect a **fixed warm-process budget** (3 warm-up + 25 timed passes
+in one process). The JVM/GraalVM JITs (JRuby, TruffleRuby) may need a larger
+warm-up to reach steady state, so their columns can **understate** peak
+throughput on the longer loops and **overstate** it on the shortest ones where
+they happen to have warmed (see `index-40`). Sub-microsecond rows (`to_h-40`)
+carry the most relative noise; treat those ratios as order-of-magnitude. Every
+number here is a **real measured value** from the dated run above — nothing is
+fabricated, estimated, or cherry-picked. The go-ruby column is the pure-Go
+library; every other column is that interpreter's own `ostruct` stdlib doing
+the equivalent work.
+{{< /callout >}}

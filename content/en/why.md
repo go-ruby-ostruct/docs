@@ -1,4 +1,9 @@
-# Why pure Go
+---
+title: "Why pure Go"
+weight: 20
+---
+
+# Why pure Go {#why-pure-go}
 
 `go-ruby-ostruct/ostruct` reimplements the data structure underneath Ruby's
 `OpenStruct` in **pure Go, with cgo disabled**. The slice of Ruby it covers — an
@@ -7,7 +12,7 @@ inspection — is **deterministic and interpreter-independent**: given its input
 the result is a pure function of those inputs. That is exactly the part that can —
 and should — live as a standalone Go library, separate from the interpreter.
 
-## The data core vs. the dynamic glue
+## The data core vs. the dynamic glue {#the-data-core-vs-the-dynamic-glue}
 
 `OpenStruct`'s headline behavior is dynamic: *any* method name becomes an attribute
 read or write. That dispatch — `method_missing`, `define_method`,
@@ -17,7 +22,7 @@ it lives in the host (`rbgo`). But the dispatch is thin: a reader call resolves 
 Everything underneath — the ordered table, insertion-order `to_h`, `delete_field`
 semantics, the MRI-exact `inspect` format — is deterministic and lives here.
 
-## Extracted from rbgo, reusable by anyone
+## Extracted from rbgo, reusable by anyone {#extracted-from-rbgo-reusable-by-anyone}
 
 This library began life inside
 [go-embedded-ruby](https://github.com/go-embedded-ruby/ruby)'s `rbgo`. It has been
@@ -32,7 +37,7 @@ This library began life inside
 - the behavior is pinned by a **differential oracle** against the system `ruby`,
   independent of any one consumer.
 
-## Why pure Go matters here
+## Why pure Go matters here {#why-pure-go-matters-here}
 
 Because the library is CGO-free and dependency-free, it:
 
@@ -44,5 +49,5 @@ Because the library is CGO-free and dependency-free, it:
   library itself, since the built-in value renderer keeps `inspect` deterministic
   and ruby-free.
 
-See [Usage & API](api.md) for the surface and [Roadmap](roadmap.md) for what is
+See [Usage & API]({{< relref "api.md" >}}) for the surface and [Roadmap]({{< relref "roadmap.md" >}}) for what is
 in scope.
